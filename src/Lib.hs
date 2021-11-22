@@ -6,73 +6,106 @@ module Lib
 import Control.Applicative
 import Control.Monad
 import Data.Void
-import Data.Text
 import qualified Data.Text as T
+import Data.Text.Encoding.Base64
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 
-type Parser = Parsec Void String
-
 -- OK, so here's what I see right now:
 -- We'll start with a simple grammar. We can have parameters, but no nested expressions for now.
 
+-- Command / Value types
+------------------------------------------------------
+
 -- Commands can have a single param for now, 
 data Command =
-      CHead
+      CBase64
+    | CHead
+    | CLength
     | CLowercase
     | CReverse
     | CTail
     | CTake Int
-    | CWords
+    | CUnBase64
     | CUppercase
+    | CWords
     deriving (Show, Eq)
 
-data CommandType =
-    TString             -- String
-    | TStringList       -- [String]
+data Value = 
+      VString T.Text     
+    | VStringList [T.Text]
+    | VInt Int         
+    | VError String     -- Error with a message
     deriving (Show, Eq)
 
-typeForCommand :: Command -> CommandType
-typeForCommand c = do
-    case c of 
-      CHead -> TString
-      CLowercase -> TString
-      CReverse -> TString
-      CTail -> TString
-      CWords -> TStringList 
-      CTake n -> TStringList
-      CUppercase -> TString
+-- Running Commands
+---------------------------------------------------------
 
-runCommand :: Command -> Text -> Text
-runCommand CHead t = do
-    if T.null t then T.pack ""
-    else singleton $ T.head t
-runCommand CUppercase t = toUpper t
-runCommand CLowercase t = toLower t
-runCommand CReverse t = Data.Text.reverse t
--- runCommand CBase64 = encodeBase64
 -- runCommand CUnbase64 = decodeBase64Lenient
 
--- TODO: Implement this one
--- TODO: Need to 'typecheck' here too, but do that later.
-runCommands :: [Command] -> Text -> Text
+runCommand :: Command -> Value -> Value
+
+runCommand CBase64 (VString t) = VString $ encodeBase64 t
+runCommand CBase64 (VStringList l) = VStringList $ map encodeBase64 l
+runCommand CBase64 _ = VError "Unexpected type, expected {VString, VStringList}"
+
+runCommand CHead (VString t) = do
+    if T.null t then VString (T.pack "")
+    else VString (T.singleton $ T.head t)
+runCommand CHead _ = VError "Unexpected type, expected {VString}"
+
+runCommand CLength (VString t) = VInt $ T.length t
+runCommand CLength (VStringList l) = VInt $ length l
+runCommand CLength _ = VError "Unexpected type, expected {VString, VStringList}"
+
+runCommand CLowercase (VString t) = VString $ T.toLower t
+runCommand CLowercase (VStringList l) = VStringList $ map T.toLower l
+runCommand CLowercase _ = VError "Unexpected type, expected {VString, VStringList}"
+
+runCommand CReverse (VString t) = VString $ T.reverse t
+runCommand CReverse (VStringList l) = VStringList $ map T.reverse l
+runCommand CReverse _ = VError "Unexpected type, expected {VString, VStringList}"
+
+runCommand CUnBase64 (VString t) = VString $ decodeBase64Lenient t
+runCommand CUnBase64 (VStringList l) = VStringList $ map decodeBase64Lenient l
+runCommand CUnBase64 _ = VError "Unexpected type, expected {VString, VStringList}"
+
+runCommand CUppercase (VString t) = VString $ T.toUpper t
+runCommand CUppercase (VStringList l) = VStringList $ map T.toUpper l
+runCommand CUppercase _ = VError "Unexpected type, expected {VString, VStringList}"
+
+runCommand CTail (VString t) = VString $ T.tail t
+runCommand CTail (VStringList l) = VStringList $ map T.tail l
+runCommand CTail _ = VError "Unexpected type, expected {VString, VStringList}"
+
+runCommand (CTake prefix) (VString t) = VString $ T.take prefix t
+runCommand (CTake prefix) (VStringList l) = VStringList $ map (T.take prefix) l
+runCommand (CTake prefix) _ = VError "Unexpected type, expected {VString, VStringList}"
+
+runCommand CWords (VString t) = VStringList $ T.words t
+runCommand CWords _ = VError "Unexpected type, expected {VString}"
+
+runCommand c v = VError $ "Unsupported command: " ++ show c ++ " or value type: " ++ show v
+
+runCommands :: [Command] -> Value -> Value
 runCommands (c:cs) input = do
     let output = runCommand c input
-    runCommands cs output
+    case output of 
+        VError e -> VError $ "Failed because :" ++ e
+        _ -> runCommands cs output
 runCommands [c] input = runCommand c input
 runCommands [] input = input
-
---TODO: Needed?
--- data Statement = Statement { sName :: String } deriving Show
 
 -- We can parse into tokens and attach source pos to those tokens.
 -- Tokens will be in a lookup table and have a 'type' that we'll map to a haskell type. 
 -- E.g. String, Int, etc. 
 -- We'll use this part to typecheck between operations.
 
--- pInteger :: Parser 
--- pInteger = Int <$> lexeme L.decimal
+-- Parser 
+-----------------------------------------------
+
+type Parser = Parsec Void String
 
 parens :: Parser a -> Parser a
 parens = between (string "(") (string ")")
@@ -87,21 +120,22 @@ pStatementSeparator = do space *> string "|>" <* space
 
 pCommand :: Parser Command
 pCommand =
-        CHead <$ string "head"
-    <|> CLowercase <$ string "lowercase"
-    <|> CTail <$ string "tail"
+        CBase64     <$ string "base64"
+    <|> CHead       <$ string "head"
+    <|> CLowercase  <$ string "lowercase"
+    <|> CTail       <$ string "tail"
     <|> pTake
-    <|> CWords <$ string "words"
-    <|> CUppercase <$ string "uppercase"
+    <|> CUnBase64   <$ string "unbase64"
+    <|> CUppercase  <$ string "uppercase"
+    <|> CWords      <$ string "words"
 
 pCommands :: Parser [Command]
-pCommands = do
-     pCommand `sepBy1` pStatementSeparator
+pCommands = pCommand `sepBy1` pStatementSeparator
 
 -- Starting tasks:
 ------------------------ 
 --
--- Need to capture stdin from main
+-- Need to fix the stdin capture in main to take into account TTY
 
 -- TODO:
 ------------------------
@@ -112,8 +146,4 @@ run :: String -> String -> IO ()
 run inputCmd stdin = do
     case runParser pCommands "" inputCmd of
         Left e -> putStrLn $ errorBundlePretty e
-        Right cs -> print $ runCommands cs (T.pack stdin)
-    let tk = CTake 2
-    print tk
-    -- Parse things here
-    putStrLn "someFunc"
+        Right cs -> print $ runCommands cs $ VString (T.pack stdin)
