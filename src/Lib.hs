@@ -142,6 +142,7 @@ pCommands = pCommand `sepBy1` pStatementSeparator
 -- Command aliases
 -- Better Show instances to strip top level var descriptions
 -- Add regex commands
+-- An intermediate mode that shows each transform on a new line
 
 run :: String -> String -> IO ()
 run inputCmd stdin = do
