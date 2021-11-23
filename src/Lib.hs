@@ -137,6 +137,7 @@ pCommands = pCommand `sepBy1` pStatementSeparator
 --
 -- Investigate why passing multiple args causes segmentation fault: stack run hello world
 -- Documentation
+-- Figure out pasteboard in
 -- More commands
 -- Command aliases
 -- Better Show instances to strip top level var descriptions
