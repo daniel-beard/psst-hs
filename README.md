@@ -49,53 +49,93 @@ Commands are chained by the pipeline operator `|>`. Each command opts in to a pa
 
 *base64*
 - Description: Base64 encoding of a VString
-- Example Input: `hello world'
-- Example Output: `aGVsbG8gd29ybGQK`
+- Example: 
+
+```
+echo 'hello world' | psst-hs 'base64'
+> aGVsbG8gd29ybGQK
+```
 
 *head*
 - Description: Take the first value
-- Example Input: `hello world`
-- Example Ouput `h`
+- Example: 
+
+```
+echo 'hello world' | psst-hs 'head' 
+> h
+```
 
 *length*
 - Description: Return a `VInt` representing the length of a `VString`
-- Example Input: `hi`
-- Example Output: `2`
+- Example:
+
+```
+echo 'hi' | psst-hs 'length'
+> 2
+```
 
 *lowercase* 
 - Description: Return a `VString` with all characters set to lowercase
-- Example Input: `HELLO WORLD`
-- Example Output: `hello world`
+- Example: 
+
+```
+echo 'HELLO WORLD' | psst-hs 'lowercase'
+> hello world
+```
 
 *reverse*
 - Description: Return a `VString` with the characters reversed from their original order
-- Example Input: `hello world`
-- Example Output: `dlrow olleh`
+- Example: 
+
+```
+echo 'hello world' | psst-hs 'reverse'
+> dlrow olleh
+```
 
 *tail*
 - Description: All characters except the first one. Returns a `VString`
-- Example Input: `hello world`
-- Example Output: `ello world`
+- Example: 
+
+```
+echo 'hello world' | psst-hs 'tail'
+> ello world
+```
 
 *take(Int)*
 - Description: Output only the prefix number of characters. Returns a `VString`
-- Example Input: `hello world` 4
-- Example Output: `hell`
+- Example:
+
+```
+echo 'hello world' | psst-hs 'take(4)'
+> hell
+```
 
 *unbase64*
 - Description: Decode a base64 representation. Returns a `VString`.
-- Example Input: `aGVsbG8gd29ybGQK`
-- Example Output: `hello world`
+- Example:
+
+```
+echo 'aGVsbG8gd29ybGQK' | psst-hs 'unbase64'
+> hello world
+```
 
 *uppercase*
 - Description: Uppercase the string. Returns a `VString`
-- Example Input: `hello world`
-- Example Output: `HELLO WORLD`
+- Example: 
+
+```
+echo 'hello world' | psst-hs 'uppercase'
+> HELLO WORLD
+```
 
 *words*
 - Description: Split a `VString` into components separated by whitespace. Returns a `VStringList`
-- Example Input: `hello world`
-- Example Output: `["hello", "world"]`
+- Example:
+
+```
+echo 'hello world' | psst-hs 'words'
+> ["hello", "world"]
+```
 
 ### VStringList
 
