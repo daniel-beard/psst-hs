@@ -42,8 +42,6 @@ data Value =
 -- Running Commands
 ---------------------------------------------------------
 
--- runCommand CUnbase64 = decodeBase64Lenient
-
 runCommand :: Command -> Value -> Value
 
 runCommand CBase64 (VString t) = VString $ encodeBase64 t
@@ -97,11 +95,6 @@ runCommands (c:cs) input = do
 runCommands [c] input = runCommand c input
 runCommands [] input = input
 
--- We can parse into tokens and attach source pos to those tokens.
--- Tokens will be in a lookup table and have a 'type' that we'll map to a haskell type. 
--- E.g. String, Int, etc. 
--- We'll use this part to typecheck between operations.
-
 -- Parser 
 -----------------------------------------------
 
@@ -122,7 +115,9 @@ pCommand :: Parser Command
 pCommand =
         CBase64     <$ string "base64"
     <|> CHead       <$ string "head"
+    <|> CLength     <$ string "length"
     <|> CLowercase  <$ string "lowercase"
+    <|> CReverse    <$ string "reverse"
     <|> CTail       <$ string "tail"
     <|> pTake
     <|> CUnBase64   <$ string "unbase64"
@@ -141,6 +136,10 @@ pCommands = pCommand `sepBy1` pStatementSeparator
 ------------------------
 --
 -- Investigate why passing multiple args causes segmentation fault: stack run hello world
+-- Documentation
+-- More commands
+-- Command aliases
+-- Better Show instances to strip top level var descriptions
 
 run :: String -> String -> IO ()
 run inputCmd stdin = do
