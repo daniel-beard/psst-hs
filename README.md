@@ -139,4 +139,74 @@ echo 'hello world' | psst-hs 'words'
 
 ### VStringList
 
-TODO:
+*base64*
+- Description: Maps the `VString` method across a `VStringList`
+- Example:
+
+```
+echo 'hello world' | psst-hs 'words |> base64'
+> ["aGVsbG8=","d29ybGQ="]
+```
+
+*length*
+- Description: Returns the length of the `VStringList` as `VInt`
+- Example:
+
+```
+echo 'hello world' | psst-hs 'words |> length'
+> 2
+```
+
+*lowercase*
+- Description: Maps the `VString` method across a `VStringList`
+- Example:
+
+```
+echo 'HELLO WORLD' | psst-hs 'words |> lowercase'
+> ["hello", "world"]
+```
+
+*reverse*
+- Description: Reverse the order of elements within the `VStringList`
+- Example:
+
+```
+echo 'hello world' | psst-hs 'words |> reverse'
+> ["world", "hello"]
+```
+
+*unbase64*
+- Description: Maps the `VString` method across a `VStringList`
+- Example:
+
+```
+echo 'aGVsbG8= d29ybGQ=' | psst-hs 'words |> unbase64'
+> ["hello", "world"]
+```
+
+*uppercase*
+- Description: Maps the `VString` method across a `VStringList`
+- Example:
+
+```
+echo 'hello world' | psst-hs 'words |> uppercase'
+> ["HELLO", "WORLD"]
+```
+
+*tail*
+- Description: Returns the last `VString` from a `VStringList`
+- Example:
+
+```
+echo 'hello world' | psst-hs 'words |> tail'
+> ["WORLD"]
+```
+
+*take(VInt)*
+- Description: Returns the first n `VString` values from a `VStringList`
+- Example:
+
+```
+echo '1 2 3 4 5' | psst-hs 'words |> take(4)'
+> ["1", "2", "3", "4"]
+```

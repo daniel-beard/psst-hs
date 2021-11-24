@@ -62,7 +62,7 @@ runCommand CLowercase (VStringList l) = VStringList $ map T.toLower l
 runCommand CLowercase _ = VError "Unexpected type, expected {VString, VStringList}"
 
 runCommand CReverse (VString t) = VString $ T.reverse t
-runCommand CReverse (VStringList l) = VStringList $ map T.reverse l
+runCommand CReverse (VStringList l) = VStringList $ reverse l
 runCommand CReverse _ = VError "Unexpected type, expected {VString, VStringList}"
 
 runCommand CUnBase64 (VString t) = VString $ decodeBase64Lenient t
@@ -74,11 +74,11 @@ runCommand CUppercase (VStringList l) = VStringList $ map T.toUpper l
 runCommand CUppercase _ = VError "Unexpected type, expected {VString, VStringList}"
 
 runCommand CTail (VString t) = VString $ T.tail t
-runCommand CTail (VStringList l) = VStringList $ map T.tail l
+runCommand CTail (VStringList l) = VStringList $ tail l
 runCommand CTail _ = VError "Unexpected type, expected {VString, VStringList}"
 
 runCommand (CTake prefix) (VString t) = VString $ T.take prefix t
-runCommand (CTake prefix) (VStringList l) = VStringList $ map (T.take prefix) l
+runCommand (CTake prefix) (VStringList l) = VStringList $ take prefix l
 runCommand (CTake prefix) _ = VError "Unexpected type, expected {VString, VStringList}"
 
 runCommand CWords (VString t) = VStringList $ T.words t
