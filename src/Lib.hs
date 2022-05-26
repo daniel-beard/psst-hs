@@ -1,5 +1,5 @@
 module Lib
-    ( run
+    ( entry
     ) where
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wno-overlapping-patterns #-}
@@ -12,24 +12,26 @@ import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 
--- OK, so here's what I see right now:
--- We'll start with a simple grammar. We can have parameters, but no nested expressions for now.
+-- Execution:
+--
+-- Each command takes a Value and returns a Value.
+-- No higher order commands for now.
 
 -- Command / Value types
 ------------------------------------------------------
 
 -- Commands can have a single param for now, 
 data Command =
-      CBase64
-    | CHead
-    | CLength
-    | CLowercase
-    | CReverse
-    | CTail
-    | CTake Int
-    | CUnBase64
-    | CUppercase
-    | CWords
+      Base64_
+    | Head_
+    | Length_
+    | Lowercase_
+    | Reverse_
+    | Tail_
+    | Take_ Int
+    | UnBase64_
+    | Uppercase_
+    | Words_
     deriving (Show, Eq)
 
 data Value = 
@@ -37,63 +39,59 @@ data Value =
     | VStringList [T.Text]
     | VInt Int         
     | VError String     -- Error with a message
-    deriving (Show, Eq)
+    deriving (Eq)
+
+-- Value Show instances
+
+instance Show Value where
+    show (VString v)        = show v
+    show (VStringList v)    = show v
+    show (VInt i)           = show i
+    show (VError i)         = show i
 
 -- Running Commands
 ---------------------------------------------------------
 
-runCommand :: Command -> Value -> Value
+run :: Command -> Value -> Value
 
-runCommand CBase64 (VString t) = VString $ encodeBase64 t
-runCommand CBase64 (VStringList l) = VStringList $ map encodeBase64 l
-runCommand CBase64 _ = VError "Unexpected type, expected {VString, VStringList}"
+-- VString
+-- ======================================================
 
-runCommand CHead (VString t) = do
+run Base64_ (VString t)         = VString $ encodeBase64 t
+run Head_ (VString t)           = do
     if T.null t then VString (T.pack "")
     else VString (T.singleton $ T.head t)
-runCommand CHead _ = VError "Unexpected type, expected {VString}"
+run Length_ (VString t)         = VInt $ T.length t
+run Lowercase_ (VString t)      = VString $ T.toLower t
+run Reverse_ (VString t)        = VString $ T.reverse t
+run UnBase64_ (VString t)       = VString $ decodeBase64Lenient t
+run Uppercase_ (VString t)      = VString $ T.toUpper t
+run Tail_ (VString t)           = VString $ T.tail t
+run (Take_ prefix) (VString t)  = VString $ T.take prefix t
+run Words_ (VString t)          = VStringList $ T.words t
 
-runCommand CLength (VString t) = VInt $ T.length t
-runCommand CLength (VStringList l) = VInt $ length l
-runCommand CLength _ = VError "Unexpected type, expected {VString, VStringList}"
+-- VStringList
+-- ======================================================
 
-runCommand CLowercase (VString t) = VString $ T.toLower t
-runCommand CLowercase (VStringList l) = VStringList $ map T.toLower l
-runCommand CLowercase _ = VError "Unexpected type, expected {VString, VStringList}"
+run Base64_ (VStringList l)         = VStringList $ map encodeBase64 l
+run Length_ (VStringList l)         = VInt $ length l
+run Lowercase_ (VStringList l)      = VStringList $ map T.toLower l
+run Reverse_ (VStringList l)        = VStringList $ reverse l
+run UnBase64_ (VStringList l)       = VStringList $ map decodeBase64Lenient l
+run Uppercase_ (VStringList l)      = VStringList $ map T.toUpper l
+run Tail_ (VStringList l)           = VStringList $ tail l
+run (Take_ prefix) (VStringList l)  = VStringList $ take prefix l
 
-runCommand CReverse (VString t) = VString $ T.reverse t
-runCommand CReverse (VStringList l) = VStringList $ reverse l
-runCommand CReverse _ = VError "Unexpected type, expected {VString, VStringList}"
+run c v = VError $ "Unsupported command: " ++ show c ++ " for value type: " ++ show v
 
-runCommand CUnBase64 (VString t) = VString $ decodeBase64Lenient t
-runCommand CUnBase64 (VStringList l) = VStringList $ map decodeBase64Lenient l
-runCommand CUnBase64 _ = VError "Unexpected type, expected {VString, VStringList}"
-
-runCommand CUppercase (VString t) = VString $ T.toUpper t
-runCommand CUppercase (VStringList l) = VStringList $ map T.toUpper l
-runCommand CUppercase _ = VError "Unexpected type, expected {VString, VStringList}"
-
-runCommand CTail (VString t) = VString $ T.tail t
-runCommand CTail (VStringList l) = VStringList $ tail l
-runCommand CTail _ = VError "Unexpected type, expected {VString, VStringList}"
-
-runCommand (CTake prefix) (VString t) = VString $ T.take prefix t
-runCommand (CTake prefix) (VStringList l) = VStringList $ take prefix l
-runCommand (CTake prefix) _ = VError "Unexpected type, expected {VString, VStringList}"
-
-runCommand CWords (VString t) = VStringList $ T.words t
-runCommand CWords _ = VError "Unexpected type, expected {VString}"
-
-runCommand c v = VError $ "Unsupported command: " ++ show c ++ " or value type: " ++ show v
-
-runCommands :: [Command] -> Value -> Value
-runCommands (c:cs) input = do
-    let output = runCommand c input
+runs :: [Command] -> Value -> Value
+runs (c:cs) input = do
+    let output = run c input
     case output of 
         VError e -> VError $ "Failed because :" ++ e
-        _ -> runCommands cs output
-runCommands [c] input = runCommand c input
-runCommands [] input = input
+        _ -> runs cs output
+runs [c] input = run c input
+runs [] input = input
 
 -- Parser 
 -----------------------------------------------
@@ -106,23 +104,23 @@ parens = between (string "(") (string ")")
 pTake :: Parser Command
 pTake = do
     void $ string "take"
-    CTake <$> parens L.decimal
+    Take_ <$> parens L.decimal
 
 pStatementSeparator :: Parser String
 pStatementSeparator = do space *> string "|>" <* space
 
 pCommand :: Parser Command
 pCommand =
-        CBase64     <$ string "base64"
-    <|> CHead       <$ string "head"
-    <|> CLength     <$ string "length"
-    <|> CLowercase  <$ string "lowercase"
-    <|> CReverse    <$ string "reverse"
-    <|> CTail       <$ string "tail"
+        Base64_     <$ string "base64"
+    <|> Head_       <$ string "head"
+    <|> Length_     <$ string "length"
+    <|> Lowercase_  <$ string "lowercase"
+    <|> Reverse_    <$ string "reverse"
+    <|> Tail_       <$ string "tail"
     <|> pTake
-    <|> CUnBase64   <$ string "unbase64"
-    <|> CUppercase  <$ string "uppercase"
-    <|> CWords      <$ string "words"
+    <|> UnBase64_   <$ string "unbase64"
+    <|> Uppercase_  <$ string "uppercase"
+    <|> Words_      <$ string "words"
 
 pCommands :: Parser [Command]
 pCommands = pCommand `sepBy1` pStatementSeparator
@@ -140,12 +138,11 @@ pCommands = pCommand `sepBy1` pStatementSeparator
 -- Figure out pasteboard in
 -- More commands
 -- Command aliases
--- Better Show instances to strip top level var descriptions
 -- Add regex commands
 -- An intermediate mode that shows each transform on a new line
 
-run :: String -> String -> IO ()
-run inputCmd stdin = do
+entry :: String -> String -> IO ()
+entry inputCmd stdin = do
     case runParser pCommands "" inputCmd of
         Left e -> putStrLn $ errorBundlePretty e
-        Right cs -> print $ runCommands cs $ VString (T.pack stdin)
+        Right cs -> print $ runs cs $ VString (T.pack stdin)
