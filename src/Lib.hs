@@ -1,8 +1,9 @@
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# OPTIONS_GHC -Wno-overlapping-patterns #-}
 module Lib
     ( entry
     ) where
-{-# LANGUAGE OverloadedStrings #-}
-{-# OPTIONS_GHC -Wno-overlapping-patterns #-}
 import Control.Applicative
 import Control.Monad
 import Data.Void
@@ -26,6 +27,7 @@ data Command =
     | Head_
     | Length_
     | Lowercase_
+    | Matches_ String
     | Reverse_
     | Tail_
     | Take_ Int
@@ -101,26 +103,25 @@ type Parser = Parsec Void String
 parens :: Parser a -> Parser a
 parens = between (string "(") (string ")")
 
-pTake :: Parser Command
-pTake = do
-    void $ string "take"
-    Take_ <$> parens L.decimal
+stringLiteral :: Parser String
+stringLiteral = char '\"' *> manyTill L.charLiteral (char '\"')
 
 pStatementSeparator :: Parser String
 pStatementSeparator = do space *> string "|>" <* space
 
 pCommand :: Parser Command
 pCommand =
-        Base64_     <$ string "base64"
-    <|> Head_       <$ string "head"
-    <|> Length_     <$ string "length"
-    <|> Lowercase_  <$ string "lowercase"
-    <|> Reverse_    <$ string "reverse"
-    <|> Tail_       <$ string "tail"
-    <|> pTake
-    <|> UnBase64_   <$ string "unbase64"
-    <|> Uppercase_  <$ string "uppercase"
-    <|> Words_      <$ string "words"
+        Base64_     <$  string "base64"
+    <|> Head_       <$  string "head"
+    <|> Length_     <$  string "length"
+    <|> Lowercase_  <$  string "lowercase"
+    <|> Matches_    <$> (string "matches" *> parens stringLiteral)
+    <|> Reverse_    <$  string "reverse"
+    <|> Tail_       <$  string "tail"
+    <|> Take_       <$> (string "take" *> parens L.decimal)
+    <|> UnBase64_   <$  string "unbase64"
+    <|> Uppercase_  <$  string "uppercase"
+    <|> Words_      <$  string "words"
 
 pCommands :: Parser [Command]
 pCommands = pCommand `sepBy1` pStatementSeparator
