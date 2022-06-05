@@ -33,8 +33,12 @@ library
   build-depends:
       base >=4.7 && <5
     , base64
+    , lens
+    , lens-regex-pcre
     , megaparsec
+    , pcre-light
     , text
+    , unix
   default-language: Haskell2010
 
 executable psst-hs-exe
@@ -47,9 +51,13 @@ executable psst-hs-exe
   build-depends:
       base >=4.7 && <5
     , base64
+    , lens
+    , lens-regex-pcre
     , megaparsec
+    , pcre-light
     , psst-hs
     , text
+    , unix
   default-language: Haskell2010
 
 test-suite psst-hs-test
@@ -63,7 +71,11 @@ test-suite psst-hs-test
   build-depends:
       base >=4.7 && <5
     , base64
+    , lens
+    , lens-regex-pcre
     , megaparsec
+    , pcre-light
     , psst-hs
     , text
+    , unix
   default-language: Haskell2010

@@ -24,7 +24,7 @@ This tool aims to be useful, but unsurprising in behavior.
 
 ```shell
 echo 'hello world' | stack run 'words |> uppercase |> take(2) |> base64 |> unbase64'
-VStringList ["HE","WO"]
+["HE","WO"]
 ```
 
 
@@ -36,6 +36,7 @@ There are currently only 4 types in `psst-hs`:
 - VString
 - VStringList
 - VInt
+- VBool
 - VError
 ```
 
@@ -80,7 +81,25 @@ echo 'hi' | psst-hs 'length'
 
 ```
 echo 'HELLO WORLD' | psst-hs 'lowercase'
-> hello world
+> "hello world"
+```
+
+*match*
+- Description: Return all matches for a given regex
+- Example:
+
+```
+echo 'hello world' | psst-hs 'match("[a-z]+")'
+["hello", "world"]
+```
+
+*matches*
+- Description: Return a `VBool` indicating if input matches a regex
+- Example:
+
+```
+echo "hello world" | psst-hs 'matches("\\w+")'
+True
 ```
 
 *reverse*
@@ -209,4 +228,18 @@ echo 'hello world' | psst-hs 'words |> tail'
 ```
 echo '1 2 3 4 5' | psst-hs 'words |> take(4)'
 > ["1", "2", "3", "4"]
+```
+
+## Building on macOS
+
+```shell
+brew install pcre
+
+# For M1s
+brew list pcre | grep 'pcre\.h$'
+
+/opt/homebrew/include
+
+ln -s /usr/local/pcre-8.45 /usr/sbin/pcre
+ln -s /usr/local/pcre-8.45/include/pcre.h /usr/include/pcre.h
 ```

@@ -1,17 +1,28 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wno-overlapping-patterns #-}
 module Lib
     ( entry
     ) where
 import Control.Applicative
+import Control.Lens
+import Control.Lens.Regex.Text
 import Control.Monad
 import Data.Void
 import qualified Data.Text as T
+import Data.Text.Encoding
 import Data.Text.Encoding.Base64
-import Text.Megaparsec
+import System.Posix.IO (stdInput)
+import System.Posix.Terminal (queryTerminal)
+import Text.Megaparsec hiding (match, matchAll)
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
+import Text.Regex.PCRE.Light (compile)
+import Text.Regex.PCRE.Light hiding (match)
 
 -- Execution:
 --
@@ -27,7 +38,8 @@ data Command =
     | Head_
     | Length_
     | Lowercase_
-    | Matches_ String
+    | Match_ T.Text
+    | Matches_ T.Text
     | Reverse_
     | Tail_
     | Take_ Int
@@ -40,6 +52,7 @@ data Value =
       VString T.Text     
     | VStringList [T.Text]
     | VInt Int         
+    | VBool Bool
     | VError String     -- Error with a message
     deriving (Eq)
 
@@ -49,6 +62,7 @@ instance Show Value where
     show (VString v)        = show v
     show (VStringList v)    = show v
     show (VInt i)           = show i
+    show (VBool b)          = show b
     show (VError i)         = show i
 
 -- Running Commands
@@ -65,6 +79,8 @@ run Head_ (VString t)           = do
     else VString (T.singleton $ T.head t)
 run Length_ (VString t)         = VInt $ T.length t
 run Lowercase_ (VString t)      = VString $ T.toLower t
+run (Match_ pattern) (VString t)   = VStringList $ t ^.. regexing (compile (encodeUtf8 pattern) []) . match
+run (Matches_ pattern) (VString t) = VBool $ has (regexing (compile (encodeUtf8 pattern) [])) t
 run Reverse_ (VString t)        = VString $ T.reverse t
 run UnBase64_ (VString t)       = VString $ decodeBase64Lenient t
 run Uppercase_ (VString t)      = VString $ T.toUpper t
@@ -107,7 +123,7 @@ stringLiteral :: Parser String
 stringLiteral = char '\"' *> manyTill L.charLiteral (char '\"')
 
 pStatementSeparator :: Parser String
-pStatementSeparator = do space *> string "|>" <* space
+pStatementSeparator = space *> string "|>" <* space
 
 pCommand :: Parser Command
 pCommand =
@@ -115,7 +131,8 @@ pCommand =
     <|> Head_       <$  string "head"
     <|> Length_     <$  string "length"
     <|> Lowercase_  <$  string "lowercase"
-    <|> Matches_    <$> (string "matches" *> parens stringLiteral)
+    <|> Matches_ . T.pack <$> (string "matches" *> parens stringLiteral)
+    <|> Match_ . T.pack   <$> (string "match" *> parens stringLiteral)
     <|> Reverse_    <$  string "reverse"
     <|> Tail_       <$  string "tail"
     <|> Take_       <$> (string "take" *> parens L.decimal)
@@ -134,16 +151,16 @@ pCommands = pCommand `sepBy1` pStatementSeparator
 -- TODO:
 ------------------------
 --
--- Investigate why passing multiple args causes segmentation fault: stack run hello world
 -- Documentation
 -- Figure out pasteboard in
 -- More commands
 -- Command aliases
--- Add regex commands
 -- An intermediate mode that shows each transform on a new line
 
 entry :: String -> String -> IO ()
 entry inputCmd stdin = do
+    istty <- queryTerminal stdInput
+
     case runParser pCommands "" inputCmd of
         Left e -> putStrLn $ errorBundlePretty e
         Right cs -> print $ runs cs $ VString (T.pack stdin)
