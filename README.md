@@ -9,28 +9,27 @@ This tool aims to be useful, but unsurprising in behavior.
 
 ## Concepts
 
-- This utility transforms strings with a typed dsl. 
+- This utility transforms strings with a typed dsl.
 - The syntax is inspired by Julialang's pipeline operator `|>`
-- This utility was born as a reimplentation of https://github.com/daniel-beard/psst but with the following:
-    - Less syntax (for now), initially 'command' based
-    - Better documentation
-    - A typed representation
-    - Fast start time (Julia takes a while to warm up)
-    - Easy to add new commands
-    - Better error messages
-    - Interpreted, with ability to output partial results in case of errors
+- This utility was born as a reimplentation of [daniel-beard/psst](https://github.com/daniel-beard/psst) with the following:
+  - Less syntax (for now), 'command' based
+  - Better documentation
+  - A typed representation
+  - Fast start time (Julia takes a while to warm up)
+  - Easy to add new commands
+  - Better error messages
+  - Interpreted, with ability to output partial results in case of errors
 
 ## Examples
 
 ```shell
-echo 'hello world' | stack run 'words |> uppercase |> take(2) |> base64 |> unbase64'
+echo 'hello world' | psst-hs 'words |> uppercase |> take(2) |> base64 |> unbase64'
 ["HE","WO"]
 ```
 
-
 ## Types and Examples
 
-There are currently only 4 types in `psst-hs`:
+There are currently only a few types in `psst-hs`:
 
 ```
 - VString
@@ -48,25 +47,30 @@ Commands are chained by the pipeline operator `|>`. Each command opts in to a pa
 
 ### VString
 
-*base64*
+<details><summary>base64 -> VString</summary>
+
 - Description: Base64 encoding of a VString
-- Example: 
+- Example:
 
 ```
 echo 'hello world' | psst-hs 'base64'
 > aGVsbG8gd29ybGQK
 ```
+</details>
 
-*head*
+<details><summary>head -> VString</summary>
+
 - Description: Take the first value
-- Example: 
+- Example:
 
 ```
-echo 'hello world' | psst-hs 'head' 
+echo 'hello world' | psst-hs 'head'
 > h
 ```
+</details>
 
-*length*
+<details><summary>length -> VInt</summary>
+
 - Description: Return a `VInt` representing the length of a `VString`
 - Example:
 
@@ -74,17 +78,21 @@ echo 'hello world' | psst-hs 'head'
 echo 'hi' | psst-hs 'length'
 > 2
 ```
+</details>
 
-*lowercase* 
+<details><summary>lowercase -> VString</summary>
+
 - Description: Return a `VString` with all characters set to lowercase
-- Example: 
+- Example:
 
 ```
 echo 'HELLO WORLD' | psst-hs 'lowercase'
 > "hello world"
 ```
+</details>
 
-*match*
+<details><summary>match -> VStringList</summary>
+
 - Description: Return all matches for a given regex
 - Example:
 
@@ -92,8 +100,10 @@ echo 'HELLO WORLD' | psst-hs 'lowercase'
 echo 'hello world' | psst-hs 'match("[a-z]+")'
 ["hello", "world"]
 ```
+</details>
 
-*matches*
+<details><summary>matches -> VBool</summary>
+
 - Description: Return a `VBool` indicating if input matches a regex
 - Example:
 
@@ -101,26 +111,32 @@ echo 'hello world' | psst-hs 'match("[a-z]+")'
 echo "hello world" | psst-hs 'matches("\\w+")'
 True
 ```
+</details>
 
-*reverse*
+<details><summary>reverse -> VStringList</summary>
+
 - Description: Return a `VString` with the characters reversed from their original order
-- Example: 
+- Example:
 
 ```
 echo 'hello world' | psst-hs 'reverse'
 > dlrow olleh
 ```
+</details>
 
-*tail*
+<details><summary>tail -> VString</summary>
+
 - Description: All characters except the first one. Returns a `VString`
-- Example: 
+- Example:
 
 ```
 echo 'hello world' | psst-hs 'tail'
 > ello world
 ```
+</details>
 
-*take(Int)*
+<details><summary>take(Int) -> VString</summary>
+
 - Description: Output only the prefix number of characters. Returns a `VString`
 - Example:
 
@@ -128,8 +144,10 @@ echo 'hello world' | psst-hs 'tail'
 echo 'hello world' | psst-hs 'take(4)'
 > hell
 ```
+</details>
 
-*unbase64*
+<details><summary>unbase64 -> VString</summary>
+
 - Description: Decode a base64 representation. Returns a `VString`.
 - Example:
 
@@ -137,17 +155,21 @@ echo 'hello world' | psst-hs 'take(4)'
 echo 'aGVsbG8gd29ybGQK' | psst-hs 'unbase64'
 > hello world
 ```
+</details>
 
-*uppercase*
+<details><summary>uppercase -> VString</summary>
+
 - Description: Uppercase the string. Returns a `VString`
-- Example: 
+- Example:
 
 ```
 echo 'hello world' | psst-hs 'uppercase'
 > HELLO WORLD
 ```
+</details>
 
-*words*
+<details><summary>words -> VStringList</summary>
+
 - Description: Split a `VString` into components separated by whitespace. Returns a `VStringList`
 - Example:
 
@@ -155,10 +177,14 @@ echo 'hello world' | psst-hs 'uppercase'
 echo 'hello world' | psst-hs 'words'
 > ["hello", "world"]
 ```
+</details>
+
+-------
 
 ### VStringList
 
-*base64*
+<details><summary>base64 -> VStringList</summary>
+
 - Description: Maps the `VString` method across a `VStringList`
 - Example:
 
@@ -166,8 +192,10 @@ echo 'hello world' | psst-hs 'words'
 echo 'hello world' | psst-hs 'words |> base64'
 > ["aGVsbG8=","d29ybGQ="]
 ```
+</details>
 
-*length*
+<details><summary>length -> VInt</summary>
+
 - Description: Returns the length of the `VStringList` as `VInt`
 - Example:
 
@@ -175,8 +203,10 @@ echo 'hello world' | psst-hs 'words |> base64'
 echo 'hello world' | psst-hs 'words |> length'
 > 2
 ```
+</details>
 
-*lowercase*
+<details><summary>lowercase -> VStringList</summary>
+
 - Description: Maps the `VString` method across a `VStringList`
 - Example:
 
@@ -184,8 +214,10 @@ echo 'hello world' | psst-hs 'words |> length'
 echo 'HELLO WORLD' | psst-hs 'words |> lowercase'
 > ["hello", "world"]
 ```
+</details>
 
-*reverse*
+<details><summary>reverse -> VStringList</summary>
+
 - Description: Reverse the order of elements within the `VStringList`
 - Example:
 
@@ -193,8 +225,10 @@ echo 'HELLO WORLD' | psst-hs 'words |> lowercase'
 echo 'hello world' | psst-hs 'words |> reverse'
 > ["world", "hello"]
 ```
+</details>
 
-*unbase64*
+<details><summary>unbase64 -> VStringList</summary>
+
 - Description: Maps the `VString` method across a `VStringList`
 - Example:
 
@@ -202,8 +236,10 @@ echo 'hello world' | psst-hs 'words |> reverse'
 echo 'aGVsbG8= d29ybGQ=' | psst-hs 'words |> unbase64'
 > ["hello", "world"]
 ```
+</details>
 
-*uppercase*
+<details><summary>uppercase -> VStringList</summary>
+
 - Description: Maps the `VString` method across a `VStringList`
 - Example:
 
@@ -211,8 +247,10 @@ echo 'aGVsbG8= d29ybGQ=' | psst-hs 'words |> unbase64'
 echo 'hello world' | psst-hs 'words |> uppercase'
 > ["HELLO", "WORLD"]
 ```
+</details>
 
-*tail*
+<details><summary>tail -> VString</summary>
+
 - Description: Returns the last `VString` from a `VStringList`
 - Example:
 
@@ -220,8 +258,10 @@ echo 'hello world' | psst-hs 'words |> uppercase'
 echo 'hello world' | psst-hs 'words |> tail'
 > ["WORLD"]
 ```
+</details>
 
-*take(VInt)*
+<details><summary>take(VInt) -> VStringList</summary>
+
 - Description: Returns the first n `VString` values from a `VStringList`
 - Example:
 
@@ -229,6 +269,9 @@ echo 'hello world' | psst-hs 'words |> tail'
 echo '1 2 3 4 5' | psst-hs 'words |> take(4)'
 > ["1", "2", "3", "4"]
 ```
+</details>
+
+-------
 
 ## Building on macOS
 
