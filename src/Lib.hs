@@ -16,8 +16,7 @@ import Data.Void
 import qualified Data.Text as T
 import Data.Text.Encoding
 import Data.Text.Encoding.Base64
-import System.Posix.IO (stdInput)
-import System.Posix.Terminal (queryTerminal)
+
 import Text.Megaparsec hiding (match, matchAll)
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -49,9 +48,9 @@ data Command =
     deriving (Show, Eq)
 
 data Value = 
-      VString T.Text     
+      VString T.Text
     | VStringList [T.Text]
-    | VInt Int         
+    | VInt Int
     | VBool Bool
     | VError String     -- Error with a message
     deriving (Eq)
@@ -152,15 +151,12 @@ pCommands = pCommand `sepBy1` pStatementSeparator
 ------------------------
 --
 -- Documentation
--- Figure out pasteboard in
 -- More commands
 -- Command aliases
 -- An intermediate mode that shows each transform on a new line
 
 entry :: String -> String -> IO ()
 entry inputCmd stdin = do
-    istty <- queryTerminal stdInput
-
     case runParser pCommands "" inputCmd of
         Left e -> putStrLn $ errorBundlePretty e
         Right cs -> print $ runs cs $ VString (T.pack stdin)

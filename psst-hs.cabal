@@ -37,6 +37,7 @@ library
     , lens-regex-pcre
     , megaparsec
     , pcre-light
+    , shelly
     , text
     , unix
   default-language: Haskell2010
@@ -56,6 +57,7 @@ executable psst-hs-exe
     , megaparsec
     , pcre-light
     , psst-hs
+    , shelly
     , text
     , unix
   default-language: Haskell2010
@@ -76,6 +78,7 @@ test-suite psst-hs-test
     , megaparsec
     , pcre-light
     , psst-hs
+    , shelly
     , text
     , unix
   default-language: Haskell2010
