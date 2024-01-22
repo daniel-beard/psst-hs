@@ -4,9 +4,6 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# OPTIONS_GHC -Wno-overlapping-patterns #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
@@ -172,32 +169,30 @@ pCommand =
 pCommands :: Parser [Command c]
 pCommands = pCommand `sepBy1` pStatementSeparator
 
--- Starting tasks:
------------------------- 
---
--- Need to fix the stdin capture in main to take into account TTY
-
 -- TODO:
 ------------------------
 --
 -- Documentation
--- Complete pasteboard in feature
 -- More commands
 -- Command aliases
 -- Make the pipeline operator joiner syntax configurable
 -- An intermediate mode that shows each transform on a new line
 
-entry :: String -> String -> IO ()
-entry inputCmd stdin = do
+pasteboardContents :: IO T.Text
+pasteboardContents = Sh.shelly $ Sh.verbosely $ Sh.run "pbpaste" []
+
+stdinContents :: IO T.Text
+stdinContents = T.pack <$> getContents
+
+entry :: String -> IO ()
+entry inputCmd = do
     istty <- queryTerminal stdInput
 
-    -- What should the logic here be? If istty ? stdIn : pbpaste
-    Sh.shelly $ Sh.verbosely $ do 
-        pasteboard <- Sh.run "pbpaste" []
-        liftIO $ print pasteboard
+    -- Either stdin or pasteboard contents: If istty ? pasteboard : stdin
+    inputText <- VString <$> if istty then pasteboardContents else stdinContents
 
     case runParser pCommands "" inputCmd of
         Left e -> putStrLn $ errorBundlePretty e
         Right cs -> do 
-            let result = runs cs $ VString (T.pack stdin)
+            let result = runs cs inputText
             print $ showValue result
